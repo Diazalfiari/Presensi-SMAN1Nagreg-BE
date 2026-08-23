@@ -100,7 +100,7 @@ class AttendanceRecord {
 
     // Ambil daftar seluruh siswa di kelas target
     const [students] = await pool.query(
-      `SELECT s.id AS student_id, s.nipd, s.nisn, u.nama AS nama_siswa
+      `SELECT s.id AS student_id, s.nipd, s.nisn, s.gender, u.nama AS nama_siswa
        FROM students s
        JOIN users u ON u.id = s.user_id
        WHERE s.kelas_id = ?
