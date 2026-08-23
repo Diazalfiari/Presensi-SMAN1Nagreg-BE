@@ -62,7 +62,11 @@ class PresensiController {
 
   static async getRekapitulasi(req, res, next) {
     try {
-      const { kelasId, startDate, endDate, tingkat } = req.query;
+      const cleanQueryValue = (value) => (value && value !== 'undefined' && value !== 'null' ? value : undefined);
+      const kelasId = cleanQueryValue(req.query.kelasId);
+      const startDate = cleanQueryValue(req.query.startDate);
+      const endDate = cleanQueryValue(req.query.endDate);
+      const tingkat = cleanQueryValue(req.query.tingkat);
 
       const data = await PresensiService.getRekapitulasi({ kelasId, startDate, endDate, tingkat });
       return apiResponse.success(res, 'Data rekapitulasi presensi berhasil dimuat.', data);
