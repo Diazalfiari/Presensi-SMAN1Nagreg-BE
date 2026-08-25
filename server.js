@@ -95,7 +95,23 @@ app.use('/api', routes);
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
-// 8. Start Server & Test MySQL Connection
+// 8. Auto-init Database Check & Start Server
+const initDatabase = require('./database/initDb');
+
+const checkAndAutoInitDb = async () => {
+  try {
+    const [tables] = await pool.query("SHOW TABLES LIKE 'users'");
+    if (tables.length === 0) {
+      console.log('ℹ️ Database kosong terdeteksi. Memulai auto-inisialisasi tabel & data awal...');
+      await initDatabase();
+    } else {
+      console.log('✅ Skema tabel database sudah siap dan aktif.');
+    }
+  } catch (err) {
+    console.warn('⚠️ Pemeriksaan auto-init database dilewati:', err.message);
+  }
+};
+
 const server = app.listen(appConfig.port, async () => {
   console.log('====================================================');
   console.log(`🚀 SMAN 1 Nagreg Backend Server berjalan di Port ${appConfig.port}`);
@@ -103,8 +119,11 @@ const server = app.listen(appConfig.port, async () => {
   console.log(`🔗 API Base URL: http://localhost:${appConfig.port}/api`);
   console.log('====================================================');
 
-  // Test koneksi database saat startup
-  await testConnection();
+  // Test koneksi database saat startup & auto-init jika database kosong
+  const isConnected = await testConnection();
+  if (isConnected) {
+    await checkAndAutoInitDb();
+  }
 });
 
 module.exports = { app, server };

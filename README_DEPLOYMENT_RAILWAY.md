@@ -87,32 +87,31 @@ Agar Frontend di Vercel dapat mengakses API Backend:
 
 ### Langkah 6: Inisialisasi Tabel & Data Awal (Migrasi Database)
 
-Setelah MySQL dan Backend aktif, kita perlu membuat 9 tabel relasional dan data pengguna default (*admin*, *guru*, *siswa*).
+> ✨ **OTOMATIS (TERBARU & DIREKOMENDASIKAN):**
+> Anda **TIDAK PERLU** membuka terminal apapun di web Railway! 
+> Backend kami telah ditambahkan fitur **Auto-Init**: saat pertama kali server backend menyala di Railway dan mendeteksi database MySQL masih kosong, backend akan **otomatis membuat 9 tabel dan mengisi data awal (admin, guru, siswa)** tanpa perlu campur tangan manual.
 
-#### Cara A: Menggunakan Web Terminal Railway (Paling Praktis)
-1. Klik service **Backend** di Railway.
-2. Buka tab **"Deployments"** -> Klik deployment yang sedang aktif -> Pilih tab **"Terminal"** (atau **"Exec"**).
-3. Ketik perintah berikut lalu tekan Enter:
-   ```bash
-   npm run db:init
-   ```
-4. Tunggu beberapa detik sampai muncul pesan:
-   `✅ Skema tabel (9 tabel relasional) berhasil dibuat.`
-   `✅ Data seeder awal berhasil dimasukkan.`
-   `🎉 Inisialisasi database selesai!`
+Jika Anda tetap ingin menjalankan secara manual, Anda bisa memilih salah satu cara berikut:
 
-#### Cara B: Menjalankan dari Komputer Lokal ke Database Railway
-Jika ingin menjalankan dari terminal VSCode / Command Prompt Anda:
+#### Opsi Manual 1: Dari Komputer Lokal Anda (1 Menit Selesai)
 1. Buka service **MySQL** di Railway -> Buka tab **"Connect"** -> Salin **`MYSQL_URL`** (Public Connection URL).
-2. Di terminal komputer Anda (folder `Backend`), jalankan:
+2. Di terminal VS Code Anda (folder `Backend`), jalankan:
    - **PowerShell (Windows):**
      ```powershell
-     $env:MYSQL_URL="mysql://root:password@roundhouse.proxy.rlwy.net:PORT/railway"; npm run db:init
+     $env:MYSQL_URL="paste_url_dari_railway_disini"; npm run db:init
      ```
    - **CMD (Windows):**
      ```cmd
-     set MYSQL_URL=mysql://root:password@roundhouse.proxy.rlwy.net:PORT/railway&& npm run db:init
+     set MYSQL_URL=paste_url_dari_railway_disini&& npm run db:init
      ```
+
+#### Opsi Manual 2: Jika Menggunakan Railway CLI
+```bash
+npm install -g @railway/cli
+railway login
+railway link
+railway run npm run db:init
+```
 
 ---
 
