@@ -36,6 +36,15 @@ class AuthController {
 
   static async logout(req, res, next) {
     try {
+      const ipAddress = req.ip || req.connection.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+
+      await AuthService.logout({
+        user: req.user,
+        ipAddress,
+        userAgent,
+      });
+
       return apiResponse.success(res, 'Logout berhasil.');
     } catch (err) {
       next(err);

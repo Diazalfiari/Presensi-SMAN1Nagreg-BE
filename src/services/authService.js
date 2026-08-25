@@ -80,6 +80,20 @@ class AuthService {
     return user;
   }
 
+  static async logout({ user, ipAddress, userAgent }) {
+    await logActivity({
+      userId: user.id,
+      namaUser: user.nama,
+      role: user.role,
+      kategori: 'Autentikasi',
+      aksi: `Logout ${user.role.toUpperCase()}`,
+      deskripsi: `Pengguna '${user.nama}' (${user.role}) berhasil logout dari sistem.`,
+      status: 'info',
+      ipAddress,
+      userAgent,
+    });
+  }
+
   static async changePassword(userId, { oldPassword, newPassword, ipAddress, userAgent }) {
     if (!oldPassword || !newPassword) {
       throw new Error('Kata sandi lama dan baru wajib diisi.');
