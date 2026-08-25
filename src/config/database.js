@@ -46,6 +46,7 @@ const parseDatabaseConfig = () => {
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
     dateStrings: true,
+    timezone: '+07:00', // WIB (Waktu Indonesia Barat)
     ssl: isSsl ? { rejectUnauthorized: false } : undefined,
   };
 };
@@ -53,13 +54,21 @@ const parseDatabaseConfig = () => {
 const dbOptions = parseDatabaseConfig();
 const pool = mysql.createPool(dbOptions);
 
+// Otomatis set timezone WIB untuk setiap koneksi baru dari pool
+pool.pool.on('connection', (connection) => {
+  connection.query("SET time_zone = '+07:00'");
+});
+
 // Helper function untuk test koneksi
 const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
-    const [rows] = await connection.query('SELECT DATABASE() AS currentDb, @@version AS version');
+    // Set timezone MySQL session ke WIB (Asia/Jakarta)
+    await connection.query("SET time_zone = '+07:00'");
+    const [rows] = await connection.query('SELECT DATABASE() AS currentDb, @@version AS version, NOW() AS serverTime');
     const activeDb = rows[0]?.currentDb || dbOptions.database || 'connected';
     console.log(`✅ Terhubung ke Database MySQL [${activeDb}] di ${dbOptions.host || 'remote'} (v${rows[0]?.version || 'unknown'})`);
+    console.log(`🕐 Waktu Server MySQL (WIB): ${rows[0]?.serverTime || 'unknown'}`);
     connection.release();
     return true;
   } catch (error) {
