@@ -11,54 +11,69 @@ require('dotenv').config();
 
 async function initDatabase() {
   const uri = process.env.MYSQL_URL || process.env.DATABASE_URL;
-  const host = process.env.DB_HOST || process.env.MYSQLHOST || 'localhost';
-  const port = parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306', 10);
-  const user = process.env.DB_USER || process.env.MYSQLUSER || 'root';
-  const password = process.env.DB_PASSWORD !== undefined
-    ? process.env.DB_PASSWORD
-    : (process.env.MYSQLPASSWORD || '');
-  const dbName = process.env.DB_NAME || process.env.MYSQLDATABASE || 'db_presensi_sman1nagreg';
+  let dbConfig = {};
+
+  if (uri) {
+    try {
+      const parsedUrl = new URL(uri);
+      dbConfig = {
+        host: parsedUrl.hostname,
+        port: parseInt(parsedUrl.port || '3306', 10),
+        user: decodeURIComponent(parsedUrl.username || 'root'),
+        password: decodeURIComponent(parsedUrl.password || ''),
+        database: parsedUrl.pathname ? parsedUrl.pathname.replace(/^\//, '') : 'railway',
+      };
+    } catch (e) {
+      dbConfig = { uri };
+    }
+  } else {
+    dbConfig = {
+      host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306', 10),
+      user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+      password: process.env.DB_PASSWORD !== undefined
+        ? process.env.DB_PASSWORD
+        : (process.env.MYSQLPASSWORD || ''),
+      database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'db_presensi_sman1nagreg',
+    };
+  }
+
+  const isSsl = process.env.DB_SSL === 'true' || process.env.MYSQL_SSL === 'true';
 
   console.log(`\n🔄 Memulai inisialisasi database MySQL...`);
 
   let connection;
   try {
-    if (uri) {
-      console.log(`🔌 Menghubungkan menggunakan Connection URL...`);
-      connection = await mysql.createConnection({
-        uri,
-        multipleStatements: true,
-        ssl: (process.env.DB_SSL === 'true' || process.env.MYSQL_SSL === 'true')
-          ? { rejectUnauthorized: false }
-          : undefined,
-      });
-    } else {
-      console.log(`🔌 Menghubungkan ke MySQL di ${host}:${port} sebagai '${user}'...`);
+    if (dbConfig.host) {
+      console.log(`🔌 Menghubungkan ke MySQL di ${dbConfig.host}:${dbConfig.port} (DB: ${dbConfig.database})...`);
 
-      // Coba buat database dulu jika user memiliki akses root/create database
-      try {
-        const rootConn = await mysql.createConnection({
-          host,
-          port,
-          user,
-          password,
-        });
-        await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
-        await rootConn.end();
-      } catch (createDbErr) {
-        // Abaikan jika tidak memiliki izin create database (umum di managed cloud MySQL)
+      // Coba buat database dulu jika user memiliki akses root/create database di localhost
+      if (dbConfig.host === 'localhost' || dbConfig.host === '127.0.0.1') {
+        try {
+          const rootConn = await mysql.createConnection({
+            host: dbConfig.host,
+            port: dbConfig.port,
+            user: dbConfig.user,
+            password: dbConfig.password,
+          });
+          await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
+          await rootConn.end();
+        } catch (createDbErr) {
+          // Abaikan
+        }
       }
 
       connection = await mysql.createConnection({
-        host,
-        port,
-        user,
-        password,
-        database: dbName,
+        ...dbConfig,
         multipleStatements: true,
-        ssl: (process.env.DB_SSL === 'true' || process.env.MYSQL_SSL === 'true')
-          ? { rejectUnauthorized: false }
-          : undefined,
+        ssl: isSsl ? { rejectUnauthorized: false } : undefined,
+      });
+    } else {
+      console.log(`🔌 Menghubungkan menggunakan Connection URI...`);
+      connection = await mysql.createConnection({
+        uri: dbConfig.uri,
+        multipleStatements: true,
+        ssl: isSsl ? { rejectUnauthorized: false } : undefined,
       });
     }
 
