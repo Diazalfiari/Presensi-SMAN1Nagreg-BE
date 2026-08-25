@@ -8,7 +8,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const appConfig = require('./src/config/appConfig');
-const { testConnection } = require('./src/config/database');
+const { pool, testConnection } = require('./src/config/database');
 const routes = require('./src/routes');
 const { notFoundHandler, globalErrorHandler } = require('./src/middlewares/errorMiddleware');
 
