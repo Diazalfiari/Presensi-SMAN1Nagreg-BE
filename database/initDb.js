@@ -1,6 +1,7 @@
 /**
  * database/initDb.js
  * Skrip otomatis untuk inisialisasi skema tabel dan seeding data MySQL.
+ * Kompatibel dengan Local MySQL & Railway Cloud MySQL.
  */
 const fs = require('fs');
 const path = require('path');
@@ -9,48 +10,85 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 async function initDatabase() {
-  const host = process.env.DB_HOST || 'localhost';
-  const port = parseInt(process.env.DB_PORT || '3306', 10);
-  const user = process.env.DB_USER || 'root';
-  const password = process.env.DB_PASSWORD || '';
-  const dbName = process.env.DB_NAME || 'db_presensi_sman1nagreg';
+  const uri = process.env.MYSQL_URL || process.env.DATABASE_URL;
+  const host = process.env.DB_HOST || process.env.MYSQLHOST || 'localhost';
+  const port = parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306', 10);
+  const user = process.env.DB_USER || process.env.MYSQLUSER || 'root';
+  const password = process.env.DB_PASSWORD !== undefined
+    ? process.env.DB_PASSWORD
+    : (process.env.MYSQLPASSWORD || '');
+  const dbName = process.env.DB_NAME || process.env.MYSQLDATABASE || 'db_presensi_sman1nagreg';
 
-  console.log(`\n🔄 Menghubungkan ke MySQL di ${host}:${port} sebagai '${user}'...`);
+  console.log(`\n🔄 Memulai inisialisasi database MySQL...`);
 
   let connection;
   try {
-    // 1. Hubungkan ke MySQL server (tanpa database tertentu dulu)
-    connection = await mysql.createConnection({
-      host,
-      port,
-      user,
-      password,
-      multipleStatements: true,
-    });
+    if (uri) {
+      console.log(`🔌 Menghubungkan menggunakan Connection URL...`);
+      connection = await mysql.createConnection({
+        uri,
+        multipleStatements: true,
+        ssl: (process.env.DB_SSL === 'true' || process.env.MYSQL_SSL === 'true')
+          ? { rejectUnauthorized: false }
+          : undefined,
+      });
+    } else {
+      console.log(`🔌 Menghubungkan ke MySQL di ${host}:${port} sebagai '${user}'...`);
 
-    console.log('✅ Berhasil terhubung ke server MySQL.');
+      // Coba buat database dulu jika user memiliki akses root/create database
+      try {
+        const rootConn = await mysql.createConnection({
+          host,
+          port,
+          user,
+          password,
+        });
+        await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
+        await rootConn.end();
+      } catch (createDbErr) {
+        // Abaikan jika tidak memiliki izin create database (umum di managed cloud MySQL)
+      }
 
-    // 2. Buat database jika belum ada
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
-    await connection.query(`USE \`${dbName}\`;`);
-    console.log(`✅ Menggunakan database: '${dbName}'.`);
+      connection = await mysql.createConnection({
+        host,
+        port,
+        user,
+        password,
+        database: dbName,
+        multipleStatements: true,
+        ssl: (process.env.DB_SSL === 'true' || process.env.MYSQL_SSL === 'true')
+          ? { rejectUnauthorized: false }
+          : undefined,
+      });
+    }
 
-    // 3. Jalankan schema.sql
+    console.log('✅ Berhasil terhubung ke server database.');
+
+    // 1. Jalankan schema.sql
     console.log('⏳ Menjalankan skrip schema.sql...');
     const schemaPath = path.join(__dirname, 'schema.sql');
-    const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+    let schemaSql = fs.readFileSync(schemaPath, 'utf8');
+
+    // Hapus statement CREATE DATABASE / USE statis agar fleksibel untuk database nama apapun
+    schemaSql = schemaSql
+      .replace(/CREATE DATABASE[\s\S]*?;/gi, '')
+      .replace(/USE\s+[`\w]+;/gi, '');
+
     await connection.query(schemaSql);
     console.log('✅ Skema tabel (9 tabel relasional) berhasil dibuat.');
 
-    // 4. Hash default passwords
+    // 2. Hash default passwords
     const adminPasswordHash = await bcrypt.hash('admin123', 10);
     const guruPasswordHash = await bcrypt.hash('guru123', 10);
     const siswaPasswordHash = await bcrypt.hash('siswa123', 10);
 
-    // 5. Jalankan seeders.sql
+    // 3. Jalankan seeders.sql
     console.log('⏳ Menjalankan skrip seeders.sql...');
     const seedersPath = path.join(__dirname, 'seeders.sql');
     let seedersSql = fs.readFileSync(seedersPath, 'utf8');
+
+    // Hapus USE statis
+    seedersSql = seedersSql.replace(/USE\s+[`\w]+;/gi, '');
 
     // Replace placeholder hash with verified bcrypt hashes
     seedersSql = seedersSql
@@ -66,7 +104,7 @@ async function initDatabase() {
     console.log('\n🎉 Inisialisasi database selesai! Siap digunakan oleh server Express.js.\n');
   } catch (err) {
     console.error('❌ Terjadi kesalahan saat inisialisasi database:', err.message);
-    console.log('💡 Tip: Pastikan MySQL Server (cth: XAMPP / Laragon / Standalone MySQL) sedang berjalan aktif.');
+    console.log('💡 Tip: Pastikan MySQL Server (XAMPP / Laragon / Railway MySQL) aktif dan variabel DB benar.');
   } finally {
     if (connection) await connection.end();
   }
@@ -77,3 +115,4 @@ if (require.main === module) {
 }
 
 module.exports = initDatabase;
+

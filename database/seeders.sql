@@ -1,9 +1,7 @@
 -- ==============================================================================
 -- DATABASE SEEDERS: SISTEM PRESENSI SMAN 1 NAGREG
--- Initial Data matching Frontend Mock System
+-- Initial Data matching Frontend Mock System (Local & Cloud Railway MySQL)
 -- ==============================================================================
-
-USE `db_presensi_sman1nagreg`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 

@@ -19,7 +19,7 @@ app.use(helmet());
 
 // 2. CORS Configuration
 const allowedOrigins = [
-  appConfig.clientUrl,
+  ...appConfig.allowedOrigins,
   'http://localhost:3000',
   'http://127.0.0.1:3000',
 ];
@@ -27,16 +27,30 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Izinkan request tanpa origin (seperti curl, mobile app, Postman) atau origin terdaftar
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Izinkan request tanpa origin (seperti curl, mobile app, Postman, Railway health checks)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+
+      // Izinkan jika ada di list allowedOrigins atau domain vercel.app / up.railway.app
+      const isAllowed =
+        allowedOrigins.includes('*') ||
+        allowedOrigins.includes(normalizedOrigin) ||
+        normalizedOrigin.endsWith('.vercel.app') ||
+        normalizedOrigin.endsWith('.up.railway.app');
+
+      if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new Error('Akses diblokir oleh kebijakan CORS SMAN 1 Nagreg.'));
+        console.warn(`[CORS Blocked] Origin: ${origin} tidak terdaftar di whitelist.`);
+        callback(new Error(`Akses diblokir oleh kebijakan CORS SMAN 1 Nagreg: ${origin}`));
       }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })
 );
 

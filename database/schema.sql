@@ -1,12 +1,7 @@
 -- ==============================================================================
 -- DATABASE SCHEMA: SISTEM PRESENSI SMAN 1 NAGREG
--- MySQL 8.0+ Compatible
+-- MySQL 8.0+ Compatible (Local & Cloud Railway MySQL)
 -- ==============================================================================
-
-CREATE DATABASE IF NOT EXISTS `db_presensi_sman1nagreg`
-CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE `db_presensi_sman1nagreg`;
 
 -- Disable Foreign Key Checks during setup
 SET FOREIGN_KEY_CHECKS = 0;
