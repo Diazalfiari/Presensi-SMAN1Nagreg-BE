@@ -82,7 +82,7 @@ class AttendanceRecord {
        LEFT JOIN attendance_records ar ON ar.session_id = ts.id
        ${whereSql}
        GROUP BY cls.id, cls.nama_kelas, cls.tingkat
-       ORDER BY cls.tingkat ASC, cls.nama_kelas ASC`,
+       ORDER BY cls.tingkat ASC, CAST(SUBSTRING_INDEX(cls.nama_kelas, '-', -1) AS UNSIGNED) ASC, cls.nama_kelas ASC`,
       queryParams
     );
 

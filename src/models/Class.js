@@ -22,7 +22,7 @@ class Class {
        LEFT JOIN teachers t ON t.id = c.wali_kelas_id
        LEFT JOIN users u ON u.id = t.user_id
        ${whereSql}
-       ORDER BY c.tingkat ASC, c.nama_kelas ASC`,
+       ORDER BY c.tingkat ASC, CAST(SUBSTRING_INDEX(c.nama_kelas, '-', -1) AS UNSIGNED) ASC, c.nama_kelas ASC`,
       queryParams
     );
     return rows;
